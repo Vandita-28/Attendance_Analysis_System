@@ -1,0 +1,108 @@
+diff --git a/Class_Schedule.csv b/Class_Schedule.csv
+index 30102c1..2b2edc2 100644
+--- a/Class_Schedule.csv
++++ b/Class_Schedule.csv
+@@ -1,6 +1,6 @@
+ Employee ID,Class Building,Slot ID
+ 13665,MGR,L51+52
+ 15701,PRP,L7+8
+-15754,SJT,D2
++15754,SJT,D1
+ 10312,GDN,C1
+ 13143,PRP,F2
+diff --git a/generateReport.py b/generateReport.py
+index 7123b6f..3b30d39 100644
+--- a/generateReport.py
++++ b/generateReport.py
+@@ -1,8 +1,8 @@
+-#Imports
++# Imports
+ import pandas as pd
+ from datetime import datetime, timedelta
+ 
+-#Variables
++# Variables
+ cabin = pd.read_csv("Cabin_Info.csv")
+ schedule = pd.read_csv("Class_Schedule.csv")
+ attendance = pd.read_csv("Employee_Attendance_Data.csv")
+@@ -10,7 +10,7 @@ leave = pd.read_csv("Leave_Info.csv")
+ slots = pd.read_csv("Slots.csv")
+ calender = pd.read_csv("Academic_Calender.csv")
+ 
+-#Functions
++# Functions
+ def get_schedule(emp_id, schedule_df):
+     result = schedule_df[schedule_df['Employee ID'] == emp_id][['Class Building', 'Slot ID']]
+     return list(result.itertuples(index=False, name=None))
+@@ -36,13 +36,13 @@ def filter_classes(class_schedule, calender_df):
+             filtered_schedule.append((start, end, day, day_to_date[day]))
+     return filtered_schedule
+ 
+-def full_attendance_report(emp_id, date_df, attendance_df):
++def full_attendance_report(emp_id, date_df, attendance_df, timetable):
+     results = []
+     for _, row in date_df.iterrows():
+         date = row['Date']
+         day = row['Day']
+         work_start_str = row['From Time']
+-        
++
+         if work_start_str == 'NA':
+             continue
+ 
+@@ -52,7 +52,7 @@ def full_attendance_report(emp_id, date_df, attendance_df):
+             (attendance_df['Employee ID'] == emp_id) & 
+             (attendance_df['Date'] == date)
+         ]
+-        
++
+         if emp_attendance.empty:
+             status = "Absent"
+         else:
+@@ -62,19 +62,24 @@ def full_attendance_report(emp_id, date_df, attendance_df):
+             if punch_in_time <= work_start:
+                 status = "Arrived In Time"
+             else:
+-                status = "Late"
++                has_class = not timetable[
++                    (timetable['Employee ID'] == emp_id) &
++                    (timetable['Date'] == date)
++                ].empty
++
++                if has_class:
++                    status = "Late to class"
++                else:
++                    status = "Late entry"
+         
+         results.append((date.strftime("%d-%m-%Y"), day, str(work_start), status))
+     return results
+ 
+-#Processing
++# Processing
+ empID = int(input("Enter Employee ID: "))
+ classes = get_schedule(empID, schedule)
+-# print(classes)
+ classes = get_class(classes, slots)
+-# print(classes)
+ classes = filter_classes(classes, calender)
+-# print(classes)
+ 
+ attendance['Date'] = pd.to_datetime(attendance['Date'], format="%d-%m-%Y")
+ calender['Date'] = pd.to_datetime(calender['Date'], format="%d-%m-%Y")
+@@ -90,7 +95,15 @@ date_range_df = calender[
+     (calender['Status'] == 'Instructional')
+ ]
+ 
+-attendance_report = full_attendance_report(empID, date_range_df, attendance)
++emp_schedule = get_schedule(empID, schedule)
++class_slots = get_class(emp_schedule, slots)
++filtered_classes = filter_classes(class_slots, calender)
++
++timetable = pd.DataFrame(filtered_classes, columns=['Start_Time', 'End_Time', 'Day', 'Date'])
++timetable['Employee ID'] = empID
++timetable['Date'] = pd.to_datetime(timetable['Date'], dayfirst=True)
++
++attendance_report = full_attendance_report(empID, date_range_df, attendance, timetable)
+ print("\nAttendance Report (Instructional Days):")
+ for date, day, work_start, status in attendance_report:
+     print(f"{date} ({day}) - Work starts at {work_start} - {status}")

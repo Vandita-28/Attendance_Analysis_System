@@ -36,8 +36,28 @@ def filter_classes(class_schedule, calender_df):
             filtered_schedule.append((start, end, day, day_to_date[day]))
     return filtered_schedule
 
+<<<<<<< Updated upstream
 def full_attendance_report(emp_id, date_df, attendance_df, timetable):
+=======
+def build_first_class_times(schedule_list, slots_df):
+    class_times = {}
+    for _, slot_id in schedule_list:
+        matches = slots_df[slots_df['Slot_ID'] == slot_id]
+        for _, row in matches.iterrows():
+            start_time = datetime.strptime(row['Start_Time'], "%H:%M").time()
+            day = row['Day']
+            if day not in class_times or start_time < class_times[day]:
+                class_times[day] = start_time
+    return class_times
+
+def full_attendance_report(emp_id, date_df, attendance_df, class_slots_df):
+>>>>>>> Stashed changes
     results = []
+
+    # Create a dict of class days and their corresponding start times
+    emp_schedule = get_schedule(emp_id, schedule)
+    first_class_time = build_first_class_times(emp_schedule, slots)
+
     for _, row in date_df.iterrows():
         date = row['Date']
         day = row['Day']
@@ -62,6 +82,7 @@ def full_attendance_report(emp_id, date_df, attendance_df, timetable):
             if punch_in_time <= work_start:
                 status = "Arrived In Time"
             else:
+<<<<<<< Updated upstream
                 has_class = not timetable[
                     (timetable['Employee ID'] == emp_id) &
                     (timetable['Date'] == date)
@@ -72,6 +93,18 @@ def full_attendance_report(emp_id, date_df, attendance_df, timetable):
                 else:
                     status = "Late entry"
         
+=======
+                if day in first_class_time:
+                    print(punch_in_time)
+                    print(first_class_time)
+                    if punch_in_time <= first_class_time[day]:
+                        status = "Late entry"
+                    else:
+                        status = "Late to class"
+                else:
+                    status = "Late entry"
+
+>>>>>>> Stashed changes
         results.append((date.strftime("%d-%m-%Y"), day, str(work_start), status))
     return results
 
