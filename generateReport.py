@@ -49,32 +49,24 @@ def build_first_class_times(schedule_list, slots_df):
 
 def full_attendance_report(emp_id, date_df, attendance_df, class_slots_df):
     results = []
-
-    # Create a dict of class days and their corresponding start times
     emp_schedule = get_schedule(emp_id, schedule)
     first_class_time = build_first_class_times(emp_schedule, slots)
-
     for _, row in date_df.iterrows():
         date = row['Date']
         day = row['Day']
         work_start_str = row['From Time']
-
         if work_start_str == 'NA':
             continue
-
         work_start = datetime.strptime(work_start_str, "%H:%M").time()
-
         emp_attendance = attendance_df[
             (attendance_df['Employee ID'] == emp_id) & 
             (attendance_df['Date'] == date)
         ]
-
         if emp_attendance.empty:
             status = "Absent"
         else:
             punch_in_str = emp_attendance.iloc[0]['Punch In Time']
             punch_in_time = datetime.strptime(punch_in_str, "%H:%M").time()
-
             if punch_in_time <= work_start:
                 status = "Arrived In Time"
             else:
